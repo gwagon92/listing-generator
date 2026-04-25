@@ -1,11 +1,37 @@
-import streamlit as st
-import anthropic
+import csv
 import os
+from datetime import datetime
+
+import anthropic
+import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
 
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+USAGE_LOG = os.path.join(_BASE_DIR, "usage_log.csv")
+FEEDBACK_LOG = os.path.join(_BASE_DIR, "feedback_log.csv")
+
+
+def log_usage(productnaam: str) -> None:
+    file_exists = os.path.isfile(USAGE_LOG)
+    with open(USAGE_LOG, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["tijdstip", "productnaam"])
+        writer.writerow([datetime.now().isoformat(), productnaam])
+
+
+def log_feedback(productnaam: str, rating: int, wat_goed: str, wat_beter: str) -> None:
+    file_exists = os.path.isfile(FEEDBACK_LOG)
+    with open(FEEDBACK_LOG, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["tijdstip", "productnaam", "beoordeling", "wat_goed", "wat_beter"])
+        writer.writerow([datetime.now().isoformat(), productnaam, rating, wat_goed, wat_beter])
+
 
 st.set_page_config(page_title="Bol.com Listing Generator", page_icon="🛒", layout="centered")
 st.title("Bol.com Listing Generator")
@@ -33,6 +59,8 @@ if submitted:
     if not productnaam:
         st.error("Voer een productnaam in.")
     else:
+        log_usage(productnaam)
+
         with st.spinner("Listing wordt gegenereerd..."):
             prompt = f"""Schrijf een professionele Nederlandse bol.com productlisting voor het volgende product:
 
@@ -76,7 +104,6 @@ Schrijf alles in het Nederlands. Gebruik zoekwoorden die shoppers op bol.com int
 
             output = response.content[0].text
 
-        # Parse de output in secties
         sections: dict[str, str] = {}
         current_section: str | None = None
         current_lines: list[str] = []
@@ -104,47 +131,72 @@ Schrijf alles in het Nederlands. Gebruik zoekwoorden die shoppers op bol.com int
         if current_section:
             sections[current_section] = "\n".join(current_lines).strip()
 
-        st.success("Listing gegenereerd!")
-        st.divider()
+        st.session_state["listing"] = {
+            "productnaam": productnaam,
+            "sections": sections,
+            "output": output,
+        }
+        st.session_state.pop("feedback_sent", None)
 
-        # Titel
-        titel = sections.get("titel", "").strip()
-        st.subheader("Titel")
-        st.text_area(
-            label="titel_veld",
-            value=titel,
-            height=75,
-            key="titel_output",
-            label_visibility="collapsed",
-        )
-        char_count = len(titel)
-        color = "green" if char_count <= 150 else "red"
-        st.markdown(f":{color}[{char_count} / 150 tekens]")
+if "listing" in st.session_state:
+    listing_data = st.session_state["listing"]
+    sections = listing_data["sections"]
+    output = listing_data["output"]
 
-        # USP Bullets
-        st.subheader("USP Bullets")
-        usps = sections.get("usps", "").strip()
-        st.text_area(
-            label="usps_veld",
-            value=usps,
-            height=170,
-            key="usps_output",
-            label_visibility="collapsed",
-        )
+    st.success("Listing gegenereerd!")
+    st.divider()
 
-        # Productomschrijving
-        omschrijving = sections.get("omschrijving", "").strip()
-        word_count = len(omschrijving.split()) if omschrijving else 0
-        st.subheader(f"Productomschrijving  (~{word_count} woorden)")
-        st.text_area(
-            label="omschrijving_veld",
-            value=omschrijving,
-            height=260,
-            key="omschrijving_output",
-            label_visibility="collapsed",
-        )
+    titel = sections.get("titel", "").strip()
+    st.subheader("Titel")
+    st.text_area(
+        label="titel_veld",
+        value=titel,
+        height=75,
+        key="titel_output",
+        label_visibility="collapsed",
+    )
+    char_count = len(titel)
+    color = "green" if char_count <= 150 else "red"
+    st.markdown(f":{color}[{char_count} / 150 tekens]")
 
-        # Ruwe output als fallback
-        if not any(sections.values()):
-            st.warning("Kon de output niet automatisch opdelen. Ruwe output:")
-            st.text_area("Ruwe output", value=output, height=400)
+    st.subheader("USP Bullets")
+    usps = sections.get("usps", "").strip()
+    st.text_area(
+        label="usps_veld",
+        value=usps,
+        height=170,
+        key="usps_output",
+        label_visibility="collapsed",
+    )
+
+    omschrijving = sections.get("omschrijving", "").strip()
+    word_count = len(omschrijving.split()) if omschrijving else 0
+    st.subheader(f"Productomschrijving  (~{word_count} woorden)")
+    st.text_area(
+        label="omschrijving_veld",
+        value=omschrijving,
+        height=260,
+        key="omschrijving_output",
+        label_visibility="collapsed",
+    )
+
+    if not any(sections.values()):
+        st.warning("Kon de output niet automatisch opdelen. Ruwe output:")
+        st.text_area("Ruwe output", value=output, height=400)
+
+    st.divider()
+    st.subheader("Feedback")
+
+    if not st.session_state.get("feedback_sent"):
+        with st.form("feedback_form"):
+            rating = st.slider("Beoordeling (1–5 sterren)", min_value=1, max_value=5, value=3)
+            wat_goed = st.text_area("Wat vond je goed?", height=80)
+            wat_beter = st.text_area("Wat kan beter?", height=80)
+            fb_submitted = st.form_submit_button("Verstuur feedback", use_container_width=True)
+
+        if fb_submitted:
+            log_feedback(listing_data["productnaam"], rating, wat_goed, wat_beter)
+            st.session_state["feedback_sent"] = True
+            st.rerun()
+    else:
+        st.success("Feedback ontvangen, bedankt!")
