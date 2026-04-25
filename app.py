@@ -1,36 +1,54 @@
-import csv
 import os
 from datetime import datetime
 
 import anthropic
+import gspread
 import streamlit as st
 from dotenv import load_dotenv
+from google.oauth2.service_account import Credentials
 
 load_dotenv()
 
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-USAGE_LOG = os.path.join(_BASE_DIR, "usage_log.csv")
-FEEDBACK_LOG = os.path.join(_BASE_DIR, "feedback_log.csv")
+_SA_FILE = os.path.join(_BASE_DIR, "service-account.json")
+_SHEET_ID = "1rgrQ4rzl0Xv7Tj-E2NqQKqfoQ6vNWJSD5FDNuXO7gwg"
+_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
+
+@st.cache_resource
+def _gs_client() -> gspread.Client:
+    if "gcp_service_account" in st.secrets:
+        creds = Credentials.from_service_account_info(
+            dict(st.secrets["gcp_service_account"]), scopes=_SCOPES
+        )
+    else:
+        creds = Credentials.from_service_account_file(_SA_FILE, scopes=_SCOPES)
+    return gspread.authorize(creds)
+
+
+def _get_worksheet(title: str, headers: list[str]) -> gspread.Worksheet:
+    sh = _gs_client().open_by_key(_SHEET_ID)
+    try:
+        ws = sh.worksheet(title)
+    except gspread.WorksheetNotFound:
+        ws = sh.add_worksheet(title=title, rows=1000, cols=len(headers))
+        ws.append_row(headers)
+    else:
+        if not ws.row_values(1):
+            ws.append_row(headers)
+    return ws
 
 
 def log_usage(productnaam: str) -> None:
-    file_exists = os.path.isfile(USAGE_LOG)
-    with open(USAGE_LOG, "a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(["tijdstip", "productnaam"])
-        writer.writerow([datetime.now().isoformat(), productnaam])
+    ws = _get_worksheet("Usage", ["tijdstip", "productnaam"])
+    ws.append_row([datetime.now().isoformat(), productnaam])
 
 
 def log_feedback(productnaam: str, rating: int, wat_goed: str, wat_beter: str) -> None:
-    file_exists = os.path.isfile(FEEDBACK_LOG)
-    with open(FEEDBACK_LOG, "a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(["tijdstip", "productnaam", "beoordeling", "wat_goed", "wat_beter"])
-        writer.writerow([datetime.now().isoformat(), productnaam, rating, wat_goed, wat_beter])
+    ws = _get_worksheet("Feedback", ["tijdstip", "productnaam", "beoordeling", "wat_goed", "wat_beter"])
+    ws.append_row([datetime.now().isoformat(), productnaam, rating, wat_goed, wat_beter])
 
 
 st.set_page_config(page_title="Bol.com Listing Generator", page_icon="🛒", layout="centered")
