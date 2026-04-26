@@ -101,13 +101,26 @@ USP BULLETS:
 • [USP 5 — concreet voordeel, max 1 zin]
 
 PRODUCTOMSCHRIJVING:
-[Klantgerichte omschrijving van 150-300 woorden in het Nederlands]
+[Schrijf de omschrijving in 3 alinea's, elk voorafgegaan door een passende emoji-kop.
+ Kies koppen die aansluiten bij het product — gebruik NIET altijd dezelfde koppen.
+ Voorbeelden van geschikte koppen (pas aan op het product):
+   🎯 Waarom kiezen voor [productnaam]?
+   ✅ Geschikt voor
+   📦 Wat krijg je?
+   💡 Hoe gebruik je het?
+   🌿 Duurzaam & verantwoord
+   🏠 Perfect voor thuis
+   ⚡ Kenmerken in één oogopslag
+ Formaat per alinea:
+   [emoji] [Koptekst]
+   [alineatekst van 2-4 zinnen]
+ Totaal 150-300 woorden, klantgericht en overtuigend.]
 
 Schrijf alles in het Nederlands. Gebruik zoekwoorden die shoppers op bol.com intypen."""
 
             response = client.messages.create(
                 model="claude-opus-4-7",
-                max_tokens=1024,
+                max_tokens=1500,
                 system=[{
                     "type": "text",
                     "text": (
