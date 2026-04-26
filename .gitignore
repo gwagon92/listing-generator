@@ -1,3 +1,4 @@
 .env
 streamlit_secrets.toml
 service-account.json
+venv/
