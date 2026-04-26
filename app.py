@@ -51,10 +51,153 @@ def log_feedback(productnaam: str, rating: int, wat_goed: str, wat_beter: str) -
     ws.append_row([datetime.now().isoformat(), productnaam, rating, wat_goed, wat_beter])
 
 
-st.set_page_config(page_title="Bol.com Listing Generator", page_icon="🛒", layout="centered")
-st.title("Bol.com Listing Generator")
-st.markdown("Vul de productdetails in en genereer direct een volledige listing.")
+st.set_page_config(page_title="BolBot — Listing Generator", page_icon="⚡", layout="centered")
 
+# ── Custom CSS ────────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.stApp {
+    background-color: #111111 !important;
+}
+
+#MainMenu { visibility: hidden; }
+footer    { visibility: hidden; }
+header    { visibility: hidden; }
+
+.block-container {
+    padding-top: 0 !important;
+    padding-bottom: 2rem !important;
+    max-width: 720px !important;
+}
+
+p, li, span, div { color: #D0D0D0; }
+h1, h2, h3, h4   { color: #F0F0F0 !important; font-family: 'Inter', sans-serif !important; }
+
+/* Form card */
+[data-testid="stForm"] {
+    background-color: #1C1C1C !important;
+    border: 1px solid #2C2C2C !important;
+    border-radius: 16px !important;
+    padding: 1.75rem 2rem !important;
+}
+
+/* Inputs */
+[data-testid="stTextInput"]  input,
+[data-testid="stTextArea"]   textarea,
+[data-testid="stNumberInput"] input {
+    background-color: #1A1A1A !important;
+    border: 1.5px solid #333333 !important;
+    color: #E8E8E8 !important;
+    border-radius: 8px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 0.95rem !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+[data-testid="stTextInput"]  input:focus,
+[data-testid="stTextArea"]   textarea:focus,
+[data-testid="stNumberInput"] input:focus {
+    border-color: #E8571A !important;
+    box-shadow: 0 0 0 3px rgba(232, 87, 26, 0.18) !important;
+    outline: none !important;
+}
+
+[data-testid="stTextInput"]   input::placeholder,
+[data-testid="stTextArea"]    textarea::placeholder { color: #4A4A4A !important; }
+
+/* Labels */
+[data-testid="stTextInput"]   label,
+[data-testid="stTextArea"]    label,
+[data-testid="stNumberInput"] label,
+[data-testid="stForm"]        label {
+    color: #777777 !important;
+    font-size: 0.73rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.09em !important;
+}
+
+/* Primary CTA button */
+[data-testid="stFormSubmitButton"] button {
+    background: linear-gradient(135deg, #E8571A 0%, #C94010 100%) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    min-height: 56px !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 4px 20px rgba(232, 87, 26, 0.30) !important;
+}
+
+[data-testid="stFormSubmitButton"] button:hover {
+    background: linear-gradient(135deg, #F06422 0%, #D4501A 100%) !important;
+    box-shadow: 0 6px 28px rgba(232, 87, 26, 0.45) !important;
+    transform: translateY(-2px) !important;
+}
+
+[data-testid="stFormSubmitButton"] button:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 10px rgba(232, 87, 26, 0.30) !important;
+}
+
+/* Slider thumb + fill */
+[data-baseweb="slider"] [role="slider"]      { background-color: #E8571A !important; border-color: #E8571A !important; }
+[data-baseweb="slider"] [role="progressbar"] { background-color: #E8571A !important; }
+
+/* Alerts */
+[data-testid="stAlert"] { border-radius: 10px !important; border-left-width: 3px !important; }
+
+/* Divider */
+hr { border-color: #2A2A2A !important; }
+
+/* Column gap */
+[data-testid="stHorizontalBlock"] { gap: 1rem !important; }
+
+/* Mobile */
+@media (max-width: 640px) {
+    .block-container { padding-left: 1rem !important; padding-right: 1rem !important; }
+    [data-testid="stForm"] { padding: 1.25rem !important; }
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ── Header ────────────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="text-align:center; padding: 2.75rem 0 2rem 0;">
+  <div style="display:inline-flex; align-items:center; gap:14px; margin-bottom:10px;">
+    <div style="
+        width:52px; height:52px;
+        background: linear-gradient(135deg, #E8571A, #C94010);
+        border-radius:14px;
+        display:flex; align-items:center; justify-content:center;
+        font-size:1.6rem;
+        box-shadow: 0 4px 18px rgba(232,87,26,0.40);
+    ">⚡</div>
+    <span style="
+        font-family:'Inter',sans-serif;
+        font-size:2.6rem; font-weight:800;
+        color:#F0F0F0; letter-spacing:-0.04em; line-height:1;
+    ">BolBot</span>
+  </div>
+  <p style="
+      color:#555555; font-size:1rem; margin:0;
+      font-family:'Inter',sans-serif; font-weight:400; letter-spacing:0.01em;
+  ">Jouw bol.com listing in 30 seconden</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ── Form ──────────────────────────────────────────────────────────────────────
 with st.form("listing_form"):
     productnaam = st.text_input("Productnaam *", placeholder="bijv. Ergonomische Bureaustoelkussen")
 
@@ -71,7 +214,7 @@ with st.form("listing_form"):
         height=100,
     )
 
-    submitted = st.form_submit_button("Genereer listing", use_container_width=True, type="primary")
+    submitted = st.form_submit_button("Genereer listing →", use_container_width=True, type="primary")
 
 if submitted:
     if not productnaam:
@@ -174,11 +317,24 @@ if "listing" in st.session_state:
     sections = listing_data["sections"]
     output = listing_data["output"]
 
-    st.success("Listing gegenereerd!")
-    st.divider()
+    # ── Result header ─────────────────────────────────────────────────────────
+    st.markdown("""
+    <div style="
+        border-left: 3px solid #E8571A;
+        padding: 0.25rem 0 0.25rem 1rem;
+        margin: 2rem 0 1.25rem 0;
+    ">
+        <p style="font-size:1.2rem; font-weight:700; color:#F0F0F0; margin:0; font-family:'Inter',sans-serif;">
+            Listing klaar
+        </p>
+        <p style="font-size:0.83rem; color:#555555; margin:4px 0 0 0; font-family:'Inter',sans-serif;">
+            Kopieer de tekst direct naar bol.com Verkooppartner
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
     titel = sections.get("titel", "").strip()
-    st.subheader("Titel")
+    st.markdown('<p style="color:#E8571A;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;font-family:\'Inter\',sans-serif;">Titel</p>', unsafe_allow_html=True)
     st.text_area(
         label="titel_veld",
         value=titel,
@@ -188,9 +344,9 @@ if "listing" in st.session_state:
     )
     char_count = len(titel)
     color = "green" if char_count <= 150 else "red"
-    st.markdown(f":{color}[{char_count} / 150 tekens]")
+    st.markdown(f'<p style="font-size:0.78rem; color:{"#4CAF50" if char_count <= 150 else "#E53935"}; margin-top:-8px; font-family:\'Inter\',sans-serif;">{char_count} / 150 tekens</p>', unsafe_allow_html=True)
 
-    st.subheader("USP Bullets")
+    st.markdown('<p style="color:#E8571A;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 4px 0;font-family:\'Inter\',sans-serif;">USP Bullets</p>', unsafe_allow_html=True)
     usps = sections.get("usps", "").strip()
     st.text_area(
         label="usps_veld",
@@ -202,7 +358,7 @@ if "listing" in st.session_state:
 
     omschrijving = sections.get("omschrijving", "").strip()
     word_count = len(omschrijving.split()) if omschrijving else 0
-    st.subheader(f"Productomschrijving  (~{word_count} woorden)")
+    st.markdown(f'<p style="color:#E8571A;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin:1rem 0 4px 0;font-family:\'Inter\',sans-serif;">Productomschrijving &nbsp;<span style="color:#555555;font-weight:400;text-transform:none;letter-spacing:0;">~{word_count} woorden</span></p>', unsafe_allow_html=True)
     st.text_area(
         label="omschrijving_veld",
         value=omschrijving,
@@ -215,15 +371,25 @@ if "listing" in st.session_state:
         st.warning("Kon de output niet automatisch opdelen. Ruwe output:")
         st.text_area("Ruwe output", value=output, height=400)
 
-    st.divider()
-    st.subheader("Feedback")
+    # ── Feedback ──────────────────────────────────────────────────────────────
+    st.markdown("""
+    <div style="
+        border-top: 1px solid #2A2A2A;
+        margin: 2rem 0 1.25rem 0;
+        padding-top: 1.5rem;
+    ">
+        <p style="font-size:0.95rem; font-weight:600; color:#888888; margin:0; font-family:'Inter',sans-serif;">
+            Hoe was de listing?
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
     if not st.session_state.get("feedback_sent"):
         with st.form("feedback_form"):
             rating = st.slider("Beoordeling (1–5 sterren)", min_value=1, max_value=5, value=3)
             wat_goed = st.text_area("Wat vond je goed?", height=80)
             wat_beter = st.text_area("Wat kan beter?", height=80)
-            fb_submitted = st.form_submit_button("Verstuur feedback", use_container_width=True)
+            fb_submitted = st.form_submit_button("Verstuur feedback →", use_container_width=True)
 
         if fb_submitted:
             log_feedback(listing_data["productnaam"], rating, wat_goed, wat_beter)
